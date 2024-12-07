@@ -2,6 +2,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updateAssignment, addAssignment } from "./reducer";
+import * as assignmentClient from "./client";
+import * as courseClient from "../client";
 
 export default function AssignmentEditor() {
   const { cid, aid } = useParams();
@@ -13,10 +15,10 @@ export default function AssignmentEditor() {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    points: 100,
-    dueDate: "",
-    availableFromDate: new Date().toISOString().slice(0, 16),
-    availableUntilDate: new Date().toISOString().slice(0, 16),
+    points: "100",
+    due: "",
+    available: "",
+    until: "",
     course: cid,
   });
 
@@ -24,28 +26,32 @@ export default function AssignmentEditor() {
     if (assignment) {
       const formattedAssignment = {
         ...assignment,
-        dueDate: assignment.dueDate.slice(0, 16),
-        availableFromDate: assignment.availableFromDate.slice(0, 16),
-        availableUntilDate: assignment.availableUntilDate?.slice(0, 16) || new Date().toISOString().slice(0, 16)
+        due: assignment.due?.split('T')[0] || "",
+        available: assignment.available?.split('T')[0] || "",
+        until: assignment.until?.split('T')[0] || ""
       };
       setFormData(formattedAssignment);
     }
   }, [assignment]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const submissionData = {
       ...formData,
-      dueDate: new Date(formData.dueDate).toISOString().slice(0, 19),
-      availableFromDate: new Date(formData.availableFromDate).toISOString().slice(0, 19),
-      availableUntilDate: new Date(formData.availableUntilDate).toISOString().slice(0, 19)
+      _id: aid || Date.now().toString(),
     };
 
-    if (aid) {
-      dispatch(updateAssignment({ ...submissionData, _id: aid }));
-    } else {
-      dispatch(addAssignment(submissionData));
+    try {
+      if (aid) {
+        const updatedAssignment = await assignmentClient.updateAssignment(submissionData);
+        dispatch(updateAssignment(updatedAssignment));
+      } else {
+        const newAssignment = await courseClient.createAssignmentForCourse(cid as string, submissionData);
+        dispatch(addAssignment(newAssignment));
+      }
+      navigate(`/Kanbas/Courses/${cid}/Assignments`);
+    } catch (error) {
+      console.error("Error saving assignment:", error);
     }
-    navigate(`/Kanbas/Courses/${cid}/Assignments`);
   };
 
   return (
@@ -77,37 +83,37 @@ export default function AssignmentEditor() {
           type="number"
           className="form-control"
           value={formData.points}
-          onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) })}
+          onChange={(e) => setFormData({ ...formData, points: e.target.value })}
         />
       </div>
 
       <div className="mb-3">
         <label className="form-label">Due Date</label>
         <input
-          type="datetime-local"
+          type="date"
           className="form-control"
-          value={formData.dueDate}
-          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+          value={formData.due}
+          onChange={(e) => setFormData({ ...formData, due: e.target.value })}
         />
       </div>
 
       <div className="mb-3">
         <label className="form-label">Available From</label>
         <input
-          type="datetime-local"
+          type="date"
           className="form-control"
-          value={formData.availableFromDate}
-          onChange={(e) => setFormData({ ...formData, availableFromDate: e.target.value })}
+          value={formData.available}
+          onChange={(e) => setFormData({ ...formData, available: e.target.value })}
         />
       </div>
 
       <div className="mb-3">
         <label className="form-label">Available Until</label>
         <input
-          type="datetime-local"
+          type="date"
           className="form-control"
-          value={formData.availableUntilDate}
-          onChange={(e) => setFormData({ ...formData, availableUntilDate: e.target.value })}
+          value={formData.until}
+          onChange={(e) => setFormData({ ...formData, until: e.target.value })}
         />
       </div>
 

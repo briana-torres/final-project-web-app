@@ -1,10 +1,11 @@
 import { Routes, Route, Navigate, useParams, useLocation } from "react-router";
+import { useState, useEffect } from "react";
+import * as client from "./client";
 import Home from "./Home";
 import Modules from "./Modules";
 import Assignments from "./Assignments";
 import AssignmentEditor from "./Assignments/Editor";
 import CoursesNavigation from "./Navigation";
-// import KanbasNavigation from "../Navigation"; // Assuming you have this component
 import { FaAlignJustify } from "react-icons/fa";
 import PeopleTable from "./People/Table";
 
@@ -12,6 +13,18 @@ export default function Courses({ courses }: { courses: any[] }) {
   const { cid } = useParams();
   const course = courses.find((course) => course._id === cid);
   const { pathname } = useLocation();
+  const [users, setUsers] = useState<any[]>([]);
+
+  const fetchUsers = async () => {
+    if (cid) {
+      const users = await client.findUsersForCourse(cid);
+      setUsers(users);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, [cid]);
 
   return (
     <div className="row">
@@ -33,7 +46,7 @@ export default function Courses({ courses }: { courses: any[] }) {
               <Route path="Assignments" element={<Assignments />} />
               <Route path="Assignments/:aid" element={<AssignmentEditor />} />
               <Route path="Quizzes" element={<h1>Quizzes</h1>} />
-              <Route path="People" element={<PeopleTable />} />
+              <Route path="People" element={<PeopleTable users={users} />} />
             </Routes>
           </div>
         </div>
